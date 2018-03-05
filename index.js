@@ -348,6 +348,43 @@ PNGImage.prototype = {
 
 
 	/**
+	 * Draws a box around an area with the specified color
+	 *
+	 * @method strokeRect
+	 * @param {int} x Starting x-coordinate
+	 * @param {int} y Starting y-coordinate
+	 * @param {int} width Width of area relative to starting coordinate
+	 * @param {int} height Height of area relative to starting coordinate
+	 * @param {int} lineWidth Width of the stroke line in pixels
+	 * @param {object} color
+	 * @param {int} [color.red] Red channel of color to set
+	 * @param {int} [color.green] Green channel of color to set
+	 * @param {int} [color.blue] Blue channel of color to set
+	 * @param {int} [color.alpha] Alpha channel for color to set
+	 * @param {float} [color.opacity] Opacity of color
+	 */
+	strokeRect: function (x, y, width, height, lineWidth, color) {
+
+		var i,
+			iLen = x + width,
+			j,
+			jLen = y + height,
+			index;
+
+		for (i = x; i < iLen; i++) {
+			for (j = y; j < jLen; j++) {
+				if ((i > lineWidth && (i < i - lineWidth)) || (j > lineWidth && (j < j - lineWidth))){
+					continue;
+				}
+
+				index = this.getIndex(i, j);
+				this.setAtIndex(index, color);
+			}
+		}
+	},
+
+
+	/**
 	 * Applies a list of filters to the image
 	 *
 	 * @method applyFilters
