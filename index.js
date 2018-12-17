@@ -1,16 +1,14 @@
 // Copyright 2014-2015, Yahoo! Inc.
 // Copyrights licensed under the Mit License. See the accompanying LICENSE file for terms.
 
-var fs = require('fs'),
-	_ = require('underscore'),
+var _ = require('underscore'),
 	PNG = require('pngjs').PNG,
 	pixel = require('./lib/pixel'),
 	modify = require('./lib/modify'),
 	conversion = require('./lib/conversion'),
 	filters = require('./lib/filters'),
 	streamBuffers = require("stream-buffers"),
-	MemoryStream = require('./lib/memoryStream'),
-	request = require('request');
+	MemoryStream = require('./lib/memoryStream');
 
 var Decoder = require('./lib/png/decoder');
 var Encoder = require('./lib/png/encoder');
@@ -96,85 +94,6 @@ PNGImage.copyImage = function (image) {
 	image.getImage().bitblt(newImage.getImage(), 0, 0, image.getWidth(), image.getHeight(), 0, 0);
 	return newImage;
 };
-
-
-/**
- * Reads an image from the filesystem
- *
- * @static
- * @method readImage
- * @param {string} path Url or file-path
- * @param {function} fn
- * @return {PNGImage}
- */
-PNGImage.readImage = function (path, fn) {
-	if (path.indexOf('http') === 0) {
-		return this._readImageFromUrl(path, fn);
-	} else {
-		return this._readImageFromFs(path, fn);
-	}
-};
-PNGImage._readImageFromFs = function (filename, fn) {
-	var image = new PNG(),
-		resultImage = new PNGImage(image);
-
-	fn = fn || function () {};
-
-	fs.createReadStream(filename).once('error', function(err) {
-		fn(err, undefined);
-	}).pipe(image).once('parsed', function () {
-		image.removeListener('error', fn);
-		fn(undefined, resultImage);
-	}).once('error', function (err) {
-		image.removeListener('parsed', fn);
-		fn(err, resultImage);
-	}).pipe(image);
-
-	return resultImage;
-};
-PNGImage._readImageFromUrl = function (url, fn) {
-
-	var stream, req;
-
-	request.head(url, function (err, res) {
-
-		var contentType = (res.headers['content-type'] || '').toLowerCase();
-
-		if (contentType !== 'image/png') {
-			fn(new Error('Unsupported image format: ' + contentType));
-
-		} else {
-
-			stream = new MemoryStream({size: res.headers['content-length']});
-			req = request(url).pipe(stream);
-
-			req.on('error', function (err) {
-				fn(err);
-			});
-
-			req.on('finish', function () {
-				var buffer = stream.getBuffer();
-
-				PNGImage.loadImage(buffer, fn);
-			});
-		}
-	});
-
-	return null; // This will be deprecated
-};
-
-/**
- * Reads an image from the filesystem synchronously
- *
- * @static
- * @method readImageSync
- * @param {string} filename
- * @return {PNGImage}
- */
-PNGImage.readImageSync = function (filename) {
-	return this.loadImageSync(fs.readFileSync(filename));
-};
-
 
 /**
  * Loads an image from a blob
@@ -455,30 +374,6 @@ PNGImage.prototype = {
 		return (this.getWidth() * y) + x;
 	},
 
-
-	/**
-	 * Writes the image to the filesystem
-	 *
-	 * @method writeImage
-	 * @param {string} filename Path to file
-	 * @param {function} fn Callback
-	 */
-	writeImage: function (filename, fn) {
-
-		fn = fn || function () {};
-
-		this._image.pack().pipe(fs.createWriteStream(filename)).once('close', function () {
-			this._image.removeListener('error', fn);
-			fn(undefined, this);
-		}.bind(this)).once('error', function (err) {
-			this._image.removeListener('close', fn);
-			fn(err, this);
-		}.bind(this));
-	},
-
-	writeImageSync: function (filename) {
-		fs.writeFileSync(filename, this.toBlobSync());
-	},
 
 	toBlobSync: function (options) {
 		var encoder = new Encoder();
